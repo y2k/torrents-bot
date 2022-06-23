@@ -4,7 +4,7 @@ open TorrentBot.Common
 open TorrentBot.App
 open System
 
-type ICommandWrapper =
+type SystemBehaviour =
     abstract member writeToBot: string -> unit
     abstract member readFromBot: unit -> string list
     abstract member downloadString: string -> string
@@ -71,7 +71,7 @@ let assertWithRetry f =
     Threading.Thread.Sleep(1000)
     f ()
 
-let runTest () =
+let runTestApplication () =
     let mutable log: Cmd list = []
     let mutable telegramResponses: string list = []
 
@@ -86,7 +86,7 @@ let runTest () =
 
             log <- cmd :: log)
 
-    { new ICommandWrapper with
+    { new SystemBehaviour with
         member _.writeToBot msg =
             telegramResponses <- []
             dispatch (Bot.NewBotMessage("alice", msg))

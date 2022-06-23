@@ -6,11 +6,11 @@ open Swensen.Unquote
 
 [<Fact>]
 let ``test my_rss_link`` () =
-    let env = runTest ()
-    env.writeToBot "/my_rss_link"
+    let app = runTestApplication ()
+    app.writeToBot "/my_rss_link"
 
     assertWithRetry (fun _ ->
-        let actual = env.readFromBot ()
+        let actual = app.readFromBot ()
 
         let expected =
             [ "You RSS link: http://localhost:8080/rss/HQ_sqXn-2x2OpeBxq7Ed9cB3z5ilKPyWSASCiNLwbSc." ]
@@ -32,11 +32,11 @@ One Finger Death Punch 2 [L] [RUS + ENG / ENG] (20… <a href="https://t.me/$ME$
 Человек-тапок / One-Punch Man / Серии: 01-04 [2019… <a href="https://t.me/$ME$?start=c2l0ZS5jb20vZm9ydW0vZGwucGhwP3Q9NTgwMTQ4NA==">[DOWNLOAD]</a>
 Ванпанчмен / One-Punch Man (ТВ-2) (Сакурай Тикара)… <a href="https://t.me/$ME$?start=c2l0ZS5jb20vZm9ydW0vZGwucGhwP3Q9NTc2ODYwOA==">[DOWNLOAD]</a>"""
 
-    let env = runTest ()
-    env.writeToBot "/search site.com one punch"
+    let app = runTestApplication ()
+    app.writeToBot "/search site.com one punch"
 
     assertWithRetry (fun _ ->
-        let actual = env.readFromBot ()
+        let actual = app.readFromBot ()
         let expected = [ expected; "Search…" ]
 
         test <@ expected = actual @>)
@@ -54,11 +54,11 @@ let ``test start`` () =
   </channel>
 </rss>"""
 
-    let env = runTest ()
-    env.writeToBot "/start cnV0cmFja2VyLm9yZy9mb3J1bS9kbC5waHA_dD01NDA0OTk2"
+    let app = runTestApplication ()
+    app.writeToBot "/start cnV0cmFja2VyLm9yZy9mb3J1bS9kbC5waHA_dD01NDA0OTk2"
 
     assertWithRetry (fun _ ->
         let actual =
-            env.downloadString "http://localhost:8080/rss/HQ_sqXn-2x2OpeBxq7Ed9cB3z5ilKPyWSASCiNLwbSc."
+            app.downloadString "http://localhost:8080/rss/HQ_sqXn-2x2OpeBxq7Ed9cB3z5ilKPyWSASCiNLwbSc."
 
         test <@ expected = actual @>)

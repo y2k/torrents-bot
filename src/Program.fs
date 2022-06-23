@@ -167,16 +167,16 @@ type Config =
       sites: Map<string, SiteConfig> }
 
 let parseConfig textConfig =
-    Edn.parseMap2
+    Edn.map2
         (Edn.paramS "origin")
         (Edn.param
             "sites"
             (Edn.parseStringMap (
-                Edn.parseMap2
+                Edn.map2
                     (Edn.paramS "cookie")
                     (Edn.param
                         "parser"
-                        (Edn.parseMap3 (Edn.paramS "nodes") (Edn.paramS "title") (Edn.paramS "link") (fun n t l ->
+                        (Edn.map3 (Edn.paramS "nodes") (Edn.paramS "title") (Edn.paramS "link") (fun n t l ->
                             { Parser.nodes = n
                               Parser.title = t
                               Parser.link = l })))

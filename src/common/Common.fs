@@ -243,17 +243,17 @@ module Edn =
     let parseMap p1 parse : _ t =
         { p = (pchar '{' >>. p1.p .>> pchar '}') |>> parse }
 
-    let parseMap2 p1 p2 parse : _ t =
+    let map2 p1 p2 parse : _ t =
         { p =
             pchar '{' >>. (pipe2 (p1.p .>> pspace) p2.p parse)
             .>> pchar '}' }
 
-    let parseMap3 p1 p2 p3 parse : _ t =
+    let map3 p1 p2 p3 parse : _ t =
         { p =
             pchar '{' >>. (pipe3 p1.p p2.p p3.p parse)
             .>> pchar '}' }
 
-    let parseMap4 p1 p2 p3 p4 parse : _ t =
+    let map4 p1 p2 p3 p4 parse : _ t =
         { p =
             pchar '{' >>. (pipe4 p1.p p2.p p3.p p4.p parse)
             .>> pchar '}' }
