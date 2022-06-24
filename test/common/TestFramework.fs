@@ -76,15 +76,19 @@ let runTestApplication () =
     let mutable telegramResponses: string list = []
 
     let dispatch: Msg -> unit =
-        start "_SALT_" config (fun d cmd ->
-            handleTestCmd d cmd
+        start
+            "_SALT_"
+            config
+            (fun d cmd ->
+                handleTestCmd d cmd
 
-            match cmd with
-            | :? Bot.SendBotResponse as Bot.SendBotResponse (_, text, _) ->
-                telegramResponses <- text :: telegramResponses
-            | _ -> ()
+                match cmd with
+                | :? Bot.SendBotResponse as Bot.SendBotResponse (_, text, _) ->
+                    telegramResponses <- text :: telegramResponses
+                | _ -> ()
 
-            log <- cmd :: log)
+                log <- cmd :: log)
+            (fun _ -> [])
 
     { new SystemBehaviour with
         member _.writeToBot msg =
