@@ -13,7 +13,7 @@ let ``test my_rss_link`` () =
         let actual = app.readFromBot ()
 
         let expected =
-            [ "You RSS link: http://localhost:8080/rss/HQ_sqXn-2x2OpeBxq7Ed9cB3z5ilKPyWSASCiNLwbSc." ]
+            [ "You RSS link: http://localhost:8080/rss/HQ_sqXn-2x2OpeBxq7Ed9cB3z5ilKPyWSASCiNLwbSc~" ]
 
         test <@ expected = actual @>)
 
@@ -59,6 +59,6 @@ let ``test start`` () =
 
     assertWithRetry (fun _ ->
         let actual =
-            app.downloadString "http://localhost:8080/rss/HQ_sqXn-2x2OpeBxq7Ed9cB3z5ilKPyWSASCiNLwbSc."
+            app.downloadString "http://localhost:8080/rss/HQ_sqXn-2x2OpeBxq7Ed9cB3z5ilKPyWSASCiNLwbSc~"
 
         test <@ expected = actual @>)
