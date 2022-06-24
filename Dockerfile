@@ -11,7 +11,7 @@ COPY bot/*.fs bot/
 COPY bot/common/*.fs bot/common/
 COPY test/*.fs test/
 COPY test/common/*.fs test/common/
-COPY test/common/__test_data test/common/__test_data
+COPY test/common/__test_data/*.zip test/common/__test_data
 
 ARG TEST_PWD
 ENV TEST_PWD=$TEST_PWD
