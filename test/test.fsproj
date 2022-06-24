@@ -27,7 +27,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\src\src.fsproj" />
+    <ProjectReference Include="..\bot\bot.fsproj" />
   </ItemGroup>
 
 </Project>
