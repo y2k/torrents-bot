@@ -42,6 +42,30 @@ One Finger Death Punch 2 [L] [RUS + ENG / ENG] (20… <a href="https://t.me/$ME$
         test <@ expected = actual @>)
 
 [<Fact>]
+let ``test search anime`` () =
+    let expected =
+        """Search result:
+[Gumroad / Giulia Marchetti] 3D Character Creation… <a href="https://t.me/$ME$?start=cnV0cmFja2VyLm9yZy9mb3J1bS9kbC5waHA_dD02MjI5MjM2">[DOWNLOAD]</a>
+[TR24][OF][AF] (Score, Anime OST, Downtempo) [WEB]… <a href="https://t.me/$ME$?start=cnV0cmFja2VyLm9yZy9mb3J1bS9kbC5waHA_dD02MjI4NzYz">[DOWNLOAD]</a>
+[TR24][OF][AF] (Score, Anime OST, Downtempo) [WEB]… <a href="https://t.me/$ME$?start=cnV0cmFja2VyLm9yZy9mb3J1bS9kbC5waHA_dD02MjI4NzYy">[DOWNLOAD]</a>
+[TR24][OF][AF] (Score, Anime OST, Downtempo) [WEB]… <a href="https://t.me/$ME$?start=cnV0cmFja2VyLm9yZy9mb3J1bS9kbC5waHA_dD02MjI4NzYx">[DOWNLOAD]</a>
+[TR24][OF][AF] (Score, Anime OST, Downtempo) [WEB]… <a href="https://t.me/$ME$?start=cnV0cmFja2VyLm9yZy9mb3J1bS9kbC5waHA_dD02MjI4NzYw">[DOWNLOAD]</a>
+По волчьим законам / Animal Kingdom / Сезон: 6 / С… <a href="https://t.me/$ME$?start=cnV0cmFja2VyLm9yZy9mb3J1bS9kbC5waHA_dD02MjI4NTcx">[DOWNLOAD]</a>
+[Nintendo Switch] Bit Orchard Animal Valley + DLC… <a href="https://t.me/$ME$?start=cnV0cmFja2VyLm9yZy9mb3J1bS9kbC5waHA_dD02MjA2Mjgw">[DOWNLOAD]</a>
+По волчьим законам / Animal Kingdom / Сезон: 6 / С… <a href="https://t.me/$ME$?start=cnV0cmFja2VyLm9yZy9mb3J1bS9kbC5waHA_dD02MjI4MjM1">[DOWNLOAD]</a>
+[TR24][OF][AF] (Score, Anime OST, Ambient) [WEB] G… <a href="https://t.me/$ME$?start=cnV0cmFja2VyLm9yZy9mb3J1bS9kbC5waHA_dD02MjI4MjI5">[DOWNLOAD]</a>
+[TR24][OF][AF] (Score, Anime OST, Ambient) [WEB] G… <a href="https://t.me/$ME$?start=cnV0cmFja2VyLm9yZy9mb3J1bS9kbC5waHA_dD02MjI4MjI4">[DOWNLOAD]</a>"""
+
+    let app = runTestApplication ()
+    app.writeToBot "/search rutracker.org anime"
+
+    assertWithRetry (fun _ ->
+        let actual = app.readFromBot ()
+        let expected = [ expected; "Search…" ]
+
+        test <@ expected = actual @>)
+
+[<Fact>]
 let ``test start`` () =
     let expected =
         """<?xml version="1.0" encoding="UTF-8" ?>

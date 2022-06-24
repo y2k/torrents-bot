@@ -27,17 +27,14 @@ module Parser =
             Error(Exception.stackTrace "Not found items in search html page")
         else
             nodes
-            |> Seq.map (fun node ->
-                { title =
-                    node.SelectSingleNode(config.title).InnerHtml
-                    |> Web.HttpUtility.HtmlDecode
-                  link =
-                    Uri(
-                        baseUrl,
-                        node
-                            .SelectSingleNode(config.link)
-                            .GetAttributeValue("href", "")
-                    ) })
+            |> Seq.choose (fun node ->
+                node.SelectSingleNode(config.link)
+                |> Option.ofObj
+                |> Option.map (fun link ->
+                    { title =
+                        node.SelectSingleNode(config.title).InnerHtml
+                        |> Web.HttpUtility.HtmlDecode
+                      link = Uri(baseUrl, link.GetAttributeValue("href", "")) }))
             |> Array.ofSeq
             |> Ok
 

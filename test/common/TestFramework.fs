@@ -15,8 +15,14 @@ open System.Security.Cryptography
 let private config =
     """{:origin "http://localhost:8080/"
  :sites
- {"site.com"
-  {:cookie "key=value"
+ {"rutracker.org"
+  {:cookie "cookie"
+   :parser
+   {:nodes "//tr[@data-topic_id]"
+    :title "*//div[contains(@class,'t-title')]/a"
+    :link "*//a[contains(@class,'tr-dl')]"}}
+  "site.com"
+  {:cookie "cookie"
    :parser
    {:nodes "//tr[@data-topic_id]"
     :title "*//div[contains(@class,'t-title')]/a"
