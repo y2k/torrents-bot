@@ -134,6 +134,11 @@ module Bot =
 
     let start { client = client } (dispatch: Msg -> unit) =
         async {
+            do!
+                client.GetUpdatesAsync()
+                |> Async.AwaitTask
+                |> Async.Ignore
+
             client.StartReceiving(
                 Action<_, _, _> (fun _ (update: Update) _ ->
                     dispatch (NewBotMessage(string update.Message.From.Id, update.Message.Text))),
