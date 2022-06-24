@@ -4,5 +4,6 @@
         "*.sln": true,
         ".vscode": true,
         ".gitignore": true,
+        ".github": true,
     }
 }
