@@ -160,14 +160,6 @@ module RssServer =
             | _ -> [ Server.ResponseSended([||], req) ]
         | _ -> []
 
-type SiteConfig =
-    { cookie: string
-      parser: Parser.ParserConfig }
-
-type Config =
-    { origin: string
-      sites: Map<string, SiteConfig> }
-
 let parseConfig textConfig =
     Edn.map2
         (Edn.paramS "origin")
@@ -182,13 +174,13 @@ let parseConfig textConfig =
                             { Parser.nodes = n
                               Parser.title = t
                               Parser.link = l })))
-                    (fun c p -> { cookie = c; parser = p })
+                    (fun c p -> {| cookie = c; parser = p |})
             )))
-        (fun o s -> { origin = o; sites = s })
+        (fun o s -> {| origin = o; sites = s |})
     |> Edn.exec textConfig
 
 let start salt (encConfig: string) handleCmdExt handleMsgExt =
-    let config: Config =
+    let config =
         parseConfig (Text.Encoding.UTF8.GetString(Convert.FromBase64String encConfig))
 
     let env: Env =
@@ -199,9 +191,9 @@ let start salt (encConfig: string) handleCmdExt handleMsgExt =
     let state = ref RssServer.State.empty
 
     let handleMsg (msg: Msg) : Cmd list =
-        [ RssServer.onMessage env state.Value msg
-          App.onMessage (config.sites |> Map.map (fun _ v -> v.parser)) env msg
-          yield! handleMsgExt msg ]
+        [ yield! handleMsgExt msg
+          RssServer.onMessage env state.Value msg
+          App.onMessage (config.sites |> Map.map (fun _ v -> v.parser)) env msg ]
         |> List.concat
 
     let handleCmd (dispatch: Msg -> unit) (cmd: Cmd) : unit =
