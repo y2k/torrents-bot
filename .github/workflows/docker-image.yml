@@ -9,6 +9,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-    - run: docker build . --file Dockerfile --tag y2khub/torrents_bot --build-arg TEST_PWD=${{secrets.TEST_PWD}}
-    - run: echo ${{secrets.DOCKER_PASSWORD}} | docker login -u y2khub --password-stdin
+    - run: docker build . --file Dockerfile --tag y2khub/torrents_bot --build-arg TEST_PWD=${{ secrets.TEST_PWD }}
+    - run: echo ${{ secrets.DOCKER_PASSWORD }} | docker login -u y2khub --password-stdin
     - run: docker push y2khub/torrents_bot
