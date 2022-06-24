@@ -187,7 +187,7 @@ let parseConfig textConfig =
         (fun o s -> { origin = o; sites = s })
     |> Edn.exec textConfig
 
-let start salt (encConfig: string) handleCmdExt =
+let start salt (encConfig: string) handleCmdExt handleMsgExt =
     let config: Config =
         parseConfig (Text.Encoding.UTF8.GetString(Convert.FromBase64String encConfig))
 
@@ -200,7 +200,8 @@ let start salt (encConfig: string) handleCmdExt =
 
     let handleMsg (msg: Msg) : Cmd list =
         [ RssServer.onMessage env state.Value msg
-          App.onMessage (config.sites |> Map.map (fun _ v -> v.parser)) env msg ]
+          App.onMessage (config.sites |> Map.map (fun _ v -> v.parser)) env msg
+          yield! handleMsgExt msg ]
         |> List.concat
 
     let handleCmd (dispatch: Msg -> unit) (cmd: Cmd) : unit =
@@ -220,7 +221,11 @@ let main _ =
         Bot.onCommand bot cmd
         Http.onCommand dispatch cmd
 
-    let dispatch = start (Random.Shared.Next() |> string) encConfig handleCmd
+    let handleMsg msg =
+        printfn $"MSG: %A{msg}\n"
+        []
+
+    let dispatch = start (Random.Shared.Next() |> string) encConfig handleCmd handleMsg
 
     printfn "Server started\n"
 

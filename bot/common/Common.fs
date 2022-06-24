@@ -134,10 +134,17 @@ module Bot =
 
     let start { client = client } (dispatch: Msg -> unit) =
         async {
-            do!
-                client.GetUpdatesAsync()
+            let! ignoreMsgs =
+                client.GetUpdatesAsync(offset = -1)
                 |> Async.AwaitTask
-                |> Async.Ignore
+
+            do!
+                match ignoreMsgs with
+                | [| msg |] ->
+                    client.GetUpdatesAsync(offset = msg.Id + 1)
+                    |> Async.AwaitTask
+                    |> Async.Ignore
+                | _ -> async.Zero()
 
             client.StartReceiving(
                 Action<_, _, _> (fun _ (update: Update) _ ->
