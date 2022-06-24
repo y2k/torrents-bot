@@ -202,7 +202,7 @@ module KeyGenerator =
          |> Convert.ToBase64String)
             .Replace('+', '-')
             .Replace('/', '_')
-            .Replace('=', '.')
+            .Replace('=', '~')
 
 module Edn =
     open FParsec

@@ -80,8 +80,10 @@ module App =
             "Download scheduled",
             [ Http.HttpGetCmd($"https://%s{url}", env.cookies, (fun r -> TorrentDownloaded(user, r))) ]
         | [| "/my_rss_link" |] ->
-            let id = KeyGenerator.encode env.salt user
-            let url = sprintf "%srss/%s" env.origin id
+            let url =
+                KeyGenerator.encode env.salt user
+                |> sprintf "%srss/%s" env.origin
+
             $"You RSS link: {url}", []
         | _ -> "Unknown command or wrong parameters", []
 
