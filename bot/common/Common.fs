@@ -154,6 +154,8 @@ module Bot =
         }
 
 module Server =
+    open Suave
+    open System.Threading
     open System.Net
 
     type RequestReceived =
@@ -170,23 +172,25 @@ module Server =
         | _ -> ()
 
     let start (dispatch: Msg -> unit) =
-        async {
-            let listener = new HttpListener()
-            listener.Prefixes.Add "http://localhost:8080/"
-            listener.Start()
-
-            while true do
-                let! context = listener.GetContextAsync() |> Async.AwaitTask
+        request (fun r ctx ->
+            async {
+                let mutable outData: byte [] = [||]
+                let lock = new SemaphoreSlim(0)
 
                 dispatch (
                     RequestReceived(
-                        context.Request.Url,
+                        r.url,
                         (fun data ->
-                            context.Response.OutputStream.Write(data)
-                            context.Response.Close())
+                            outData <- data
+                            lock.Release() |> ignore)
                     )
                 )
-        }
+
+                do! lock.WaitAsync()
+                return! Successful.ok outData ctx
+            })
+        |> startWebServerAsync { defaultConfig with bindings = [ HttpBinding.create HTTP IPAddress.Any 8080us ] }
+        |> snd
 
 module Hasher =
     open System.Security.Cryptography
