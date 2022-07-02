@@ -12,16 +12,12 @@ type SystemBehaviour =
 open System.Text
 open System.Security.Cryptography
 
-let private config =
+let private encConfig =
     """{:origin "http://localhost:8080/"
+ :bot-token "..."
+ :salt "_SALT_"
  :sites
- {"rutracker.org"
-  {:cookie "cookie"
-   :parser
-   {:nodes "//tr[@data-topic_id]"
-    :title "*//div[contains(@class,'t-title')]/a"
-    :link "*//a[contains(@class,'tr-dl')]"}}
-  "site.com"
+ {"site.com"
   {:cookie "cookie"
    :parser
    {:nodes "//tr[@data-topic_id]"
@@ -44,7 +40,7 @@ let private unzip pass (path: string) =
 
 let private handleTestCmd (dispatch: Msg -> unit) (cmd: Cmd) =
     match cmd with
-    | :? Http.HttpGetCmd as Http.HttpGetCmd (url, _, callback) ->
+    | :? Http.HttpGetCmd as Http.HttpGetCmd (url, callback) ->
         let id =
             url
             |> Encoding.UTF8.GetBytes
@@ -81,10 +77,17 @@ let runTestApplication () =
     let mutable log: Cmd list = []
     let mutable telegramResponses: string list = []
 
+    let config =
+        parseConfig (Text.Encoding.UTF8.GetString(Convert.FromBase64String encConfig))
+
+    let env: Env =
+        { salt = config.salt
+          origin = config.origin
+          sites = config.sites |> Map.map (fun _ v -> v.parser) }
+
     let dispatch: Msg -> unit =
         start
-            "_SALT_"
-            config
+            env
             (fun d cmd ->
                 handleTestCmd d cmd
 

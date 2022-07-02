@@ -45,7 +45,7 @@ type AddTorrentToRssRequested =
 type Env =
     { salt: string
       origin: string
-      cookies: Map<string, string> }
+      sites: Map<string, Parser.ParserConfig> }
 
 module App =
     type private SearchDownloaded =
@@ -70,12 +70,12 @@ module App =
         | [| "/search"; domain; query |] ->
             let url = $"https://%s{domain}/forum/tracker.php?nm=%s{Uri.EscapeDataString(query)}"
 
-            "Search…", [ Http.HttpGetCmd(url, env.cookies, (fun r -> SearchDownloaded(user, domain, Uri(url), r))) ]
+            "Search…", [ Http.HttpGetCmd(url, (fun r -> SearchDownloaded(user, domain, Uri(url), r))) ]
         | [| "/start"; encUrl |] ->
             let url = String.fromBase64Url encUrl
 
             "Download scheduled",
-            [ Http.HttpGetCmd($"https://%s{url}", env.cookies, (fun r -> TorrentDownloaded(user, r))) ]
+            [ Http.HttpGetCmd($"https://%s{url}", (fun r -> TorrentDownloaded(user, r))) ]
         | [| "/my_rss_link" |] ->
             let url =
                 KeyGenerator.encode env.salt user
@@ -157,9 +157,26 @@ module RssServer =
             | _ -> [ Server.ResponseSended([||], req) ]
         | _ -> []
 
+let start (env: Env) handleCmdExt handleMsgExt =
+    let state = ref RssServer.State.empty
+
+    let handleMsg (msg: Msg) : Cmd list =
+        [ yield! handleMsgExt msg
+          RssServer.onMessage env state.Value msg
+          App.onMessage env.sites env msg ]
+        |> List.concat
+
+    let handleCmd (dispatch: Msg -> unit) (cmd: Cmd) : unit =
+        handleCmdExt dispatch cmd
+        state.Value <- RssServer.State.update env cmd state.Value
+
+    EventBus.make handleMsg handleCmd
+
 let parseConfig textConfig =
-    Edn.map2
+    Edn.map4
         (Edn.paramS "origin")
+        (Edn.paramS "bot-token")
+        (Edn.paramS "salt")
         (Edn.param
             "sites"
             (Edn.parseStringMap (
@@ -173,48 +190,38 @@ let parseConfig textConfig =
                               Parser.link = l })))
                     (fun c p -> {| cookie = c; parser = p |})
             )))
-        (fun o s -> {| origin = o; sites = s |})
+        (fun o bt salt s ->
+            {| origin = o
+               botToken = bt
+               salt = salt
+               sites = s |})
     |> Edn.exec textConfig
-
-let start salt (encConfig: string) handleCmdExt handleMsgExt =
-    let config =
-        parseConfig (Text.Encoding.UTF8.GetString(Convert.FromBase64String encConfig))
-
-    let env: Env =
-        { salt = salt
-          origin = config.origin
-          cookies = config.sites |> Map.map (fun _ x -> x.cookie) }
-
-    let state = ref RssServer.State.empty
-
-    let handleMsg (msg: Msg) : Cmd list =
-        [ yield! handleMsgExt msg
-          RssServer.onMessage env state.Value msg
-          App.onMessage (config.sites |> Map.map (fun _ v -> v.parser)) env msg ]
-        |> List.concat
-
-    let handleCmd (dispatch: Msg -> unit) (cmd: Cmd) : unit =
-        handleCmdExt dispatch cmd
-        state.Value <- RssServer.State.update env cmd state.Value
-
-    EventBus.make handleMsg handleCmd
 
 [<EntryPoint>]
 let main _ =
     let encConfig = Environment.GetEnvironmentVariable "CONFIG"
+
+    let config =
+        parseConfig (Text.Encoding.UTF8.GetString(Convert.FromBase64String encConfig))
+
+    let env: Env =
+        { salt = config.salt
+          origin = config.origin
+          sites = config.sites |> Map.map (fun _ v -> v.parser) }
+
     let bot = Bot.makeContext ()
 
     let handleCmd (dispatch: Msg -> unit) (cmd: Cmd) : unit =
         printfn $"CMD: %A{cmd}\n"
         Server.onCommand cmd
         Bot.onCommand bot cmd
-        Http.onCommand dispatch cmd
+        Http.onCommand (config.sites |> Map.map (fun _ x -> x.cookie)) dispatch cmd
 
     let handleMsg msg =
         printfn $"MSG: %A{msg}\n"
         []
 
-    let dispatch = start (Random.Shared.Next() |> string) encConfig handleCmd handleMsg
+    let dispatch = start env handleCmd handleMsg
 
     printfn "Server started\n"
 

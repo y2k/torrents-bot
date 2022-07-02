@@ -57,12 +57,12 @@ module Http =
     open System.Net.Http
 
     type HttpGetCmd =
-        | HttpGetCmd of url: string * cookie: Map<string, string> * (Result<byte [], exn> -> Msg)
+        | HttpGetCmd of url: string * (Result<byte [], exn> -> Msg)
         interface Cmd
 
-    let onCommand (dispatch: Msg -> unit) (cmd: Cmd) =
+    let onCommand (cookies: Map<string, string>) (dispatch: Msg -> unit) (cmd: Cmd) =
         match cmd with
-        | :? HttpGetCmd as HttpGetCmd (url, cookies, callback) ->
+        | :? HttpGetCmd as HttpGetCmd (url, callback) ->
             task {
                 let client = new HttpClient()
                 let req = new HttpRequestMessage(HttpMethod.Get, url)
