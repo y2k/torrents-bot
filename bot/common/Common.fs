@@ -101,8 +101,8 @@ module Bot =
 
     type Context = private { client: TelegramBotClient }
 
-    let makeContext () =
-        { client = new TelegramBotClient(Environment.GetEnvironmentVariable "TELEGRAM_BOT_TOKEN") }
+    let makeContext (token: string) =
+        { client = new TelegramBotClient(token) }
 
     let onCommand { client = client } (cmd: Cmd) =
         match cmd with

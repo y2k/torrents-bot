@@ -209,7 +209,7 @@ let main _ =
           origin = config.origin
           sites = config.sites |> Map.map (fun _ v -> v.parser) }
 
-    let bot = Bot.makeContext ()
+    let bot = Bot.makeContext config.botToken
 
     let handleCmd (dispatch: Msg -> unit) (cmd: Cmd) : unit =
         printfn $"CMD: %A{cmd}\n"
