@@ -74,8 +74,7 @@ module App =
         | [| "/start"; encUrl |] ->
             let url = String.fromBase64Url encUrl
 
-            "Download scheduled",
-            [ Http.HttpGetCmd($"https://%s{url}", (fun r -> TorrentDownloaded(user, r))) ]
+            "Download scheduled", [ Http.HttpGetCmd($"https://%s{url}", (fun r -> TorrentDownloaded(user, r))) ]
         | [| "/my_rss_link" |] ->
             let url =
                 KeyGenerator.encode env.salt user
@@ -199,10 +198,11 @@ let parseConfig textConfig =
 
 [<EntryPoint>]
 let main _ =
-    let encConfig = Environment.GetEnvironmentVariable "CONFIG"
-
     let config =
-        parseConfig (Text.Encoding.UTF8.GetString(Convert.FromBase64String encConfig))
+        Environment.GetEnvironmentVariable "CONFIG"
+        |> Convert.FromBase64String
+        |> Text.Encoding.UTF8.GetString
+        |> parseConfig
 
     let env: Env =
         { salt = config.salt
@@ -222,11 +222,12 @@ let main _ =
         []
 
     let dispatch = start env handleCmd handleMsg
+    let webHookSession = $"bot/${Guid.NewGuid()}"
 
     printfn "Server started\n"
 
-    [ Server.start dispatch
-      Bot.start bot dispatch ]
+    [ Server.start webHookSession dispatch
+      Bot.startWebHook bot (config.origin + webHookSession) ]
     |> Async.Parallel
     |> Async.Ignore
     |> Async.RunSynchronously

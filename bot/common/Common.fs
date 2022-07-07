@@ -132,31 +132,35 @@ module Bot =
             |> ignore
         | _ -> ()
 
-    let start { client = client } (dispatch: Msg -> unit) =
+    let startWebHook { client = client } url =
         async {
-            let! ignoreMsgs =
-                client.GetUpdatesAsync(offset = -1)
-                |> Async.AwaitTask
-
             do!
-                match ignoreMsgs with
-                | [| msg |] ->
-                    client.GetUpdatesAsync(offset = msg.Id + 1)
-                    |> Async.AwaitTask
-                    |> Async.Ignore
-                | _ -> async.Zero()
-
-            client.StartReceiving(
-                Action<_, _, _> (fun _ (update: Update) _ ->
-                    dispatch (NewBotMessage(string update.Message.From.Id, update.Message.Text))),
-                Action<_, _, _>(fun _ _ _ -> ())
-            )
+                client.SetWebhookAsync(url, dropPendingUpdates = true)
+                |> Async.AwaitTask
         }
 
 module Server =
+    module private TelegramHandler =
+        open Telegram.Bot.Types
+
+        let handle dispatch (update: Update) : unit =
+            dispatch (Bot.NewBotMessage(string update.Message.From.Id, update.Message.Text))
+
+    module private Deserializer =
+        open Newtonsoft.Json
+        open System.IO
+
+        let deserialize (bytes: byte []) : 'r =
+            use stream = new MemoryStream(bytes)
+            use reader = new StreamReader(stream, Text.Encoding.UTF8)
+
+            JsonSerializer
+                .Create()
+                .Deserialize<'r>(new JsonTextReader(reader))
+
     open Suave
-    open System.Threading
-    open System.Net
+    open Suave.Filters
+    open Suave.Operators
 
     type RequestReceived =
         | RequestReceived of url: Uri * (byte [] -> unit)
@@ -171,25 +175,19 @@ module Server =
         | :? ResponseSended as ResponseSended (data, (RequestReceived (_, write))) -> write data
         | _ -> ()
 
-    let start (dispatch: Msg -> unit) =
-        request (fun r ctx ->
-            async {
-                let mutable outData: byte [] = [||]
-                let lock = new SemaphoreSlim(0)
+    let start sessionId (dispatch: Msg -> unit) =
+        choose [ path $"/%s{sessionId}"
+                 >=> request (fun req ->
+                     Deserializer.deserialize req.rawForm
+                     |> TelegramHandler.handle dispatch
 
-                dispatch (
-                    RequestReceived(
-                        r.url,
-                        (fun data ->
-                            outData <- data
-                            lock.Release() |> ignore)
-                    )
-                )
-
-                do! lock.WaitAsync()
-                return! Successful.ok outData ctx
-            })
-        |> startWebServerAsync { defaultConfig with bindings = [ HttpBinding.create HTTP IPAddress.Any 8080us ] }
+                     Successful.no_content)
+                 request (fun r ctx ->
+                     async {
+                         let! outData = Async.FromContinuations(fun (f, _, _) -> dispatch (RequestReceived(r.url, f)))
+                         return! Successful.ok outData ctx
+                     }) ]
+        |> startWebServerAsync { defaultConfig with bindings = [ HttpBinding.create HTTP Net.IPAddress.Any 8080us ] }
         |> snd
 
 module Hasher =
