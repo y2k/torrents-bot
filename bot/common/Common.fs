@@ -250,9 +250,9 @@ module Edn =
         >>. pvalue
         .>> pspace
 
-    let paramS name = { p = (precord_ name pstring) }
-    let paramM name = { p = (precord_ name mapString.p) }
     let param name t = { p = (precord_ name t.p) }
+    let paramS name = param name { p = pstring }
+    let paramM name = param name { p = mapString.p }
 
     let parseMap p1 parse : _ t =
         { p = (pchar '{' >>. p1.p .>> pchar '}') |>> parse }
