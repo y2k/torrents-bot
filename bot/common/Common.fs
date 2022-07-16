@@ -250,7 +250,7 @@ module Edn =
         >>. pvalue
         .>> pspace
 
-    let param name t = name, { p = (precord_ name t.p) }
+    let param name t = name, t
     let paramS name = param name { p = pstring }
     let paramM name = param name { p = mapString.p }
 
@@ -259,12 +259,12 @@ module Edn =
 
         let dicP =
             pchar '{'
+            >>. pspace
             >>. (many (
-                     pspace
-                     >>. (choice [ pkey |>> sprintf ":%s"
-                                   pstring |>> sprintf "\"%s\"" ]
-                          .>> pspace
-                          .>>. expr)
+                     (choice [ pkey |>> sprintf ":%s"
+                               pstring |>> sprintf "\"%s\"" ]
+                      .>> pspace
+                      .>>. expr)
                      .>> pspace
                  )
                  |>> (List.fold (fun a (k, v) -> $"{a} {k} {v}") ""))
@@ -287,32 +287,42 @@ module Edn =
 
     let string = { p = pstring }
 
+    let private getValue dic n1 p1 =
+        Map.find n1 dic |> run p1.p |> getParseValue
+
     let map2 (n1, p1) (n2, p2) convert : _ t =
+        { p =
+            pchar '{'
+            >>. pspace
+            >>. many (pkey .>> pspace .>>. valueParse .>> pspace)
+            .>> pchar '}'
+            |>> (fun xs ->
+                let dic = Map.ofSeq xs
+                convert (getValue dic n1 p1) (getValue dic n2 p2)) }
+
+    let map3 (n1, p1) (n2, p2) (n3, p3) convert : _ t =
+        { p =
+            pchar '{'
+            >>. pspace
+            >>. many (pkey .>> pspace .>>. valueParse .>> pspace)
+            .>> pchar '}'
+            |>> (fun xs ->
+                let dic = Map.ofSeq xs
+                convert (getValue dic n1 p1) (getValue dic n2 p2) (getValue dic n3 p3)) }
+
+    let map4 (n1, p1) (n2, p2) (n3, p3) (n4, p4) convert : _ t =
         { p =
             pchar '{'
             >>. many (pkey .>> pspace .>>. valueParse .>> pspace)
             .>> pchar '}'
             |>> (fun xs ->
                 let dic = Map.ofSeq xs
-                let a = Map.find n1 dic |> run p1.p |> getParseValue
-                let b = Map.find n2 dic |> run p2.p |> getParseValue
-                convert a b) }
-
-    let map3 p1 p2 p3 parse : _ t =
-        { p =
-            pchar '{' >>. (pipe3 p1.p p2.p p3.p parse)
-            .>> pchar '}' }
-
-    let map4 (n1, p1) (n2, p2) (n3, p3) (n4, p4) parse : _ t =
-        let kvp = pipe2 (pkey .>> pspace) (choice [ pstring ] .>> pspace) (fun k v -> k, v)
-
-        { p =
-            pchar '{' >>. (pipe4 kvp kvp kvp kvp parse)
-            .>> pchar '}' }
+                convert (getValue dic n1 p1) (getValue dic n2 p2) (getValue dic n3 p3) (getValue dic n4 p4)) }
 
     let parseStringMap itemParser : _ t =
         { p =
             pchar '{'
+            >>. pspace
             >>. (many1 (
                      tuple2 (pstring .>> pspace) itemParser.p
                      .>> pspace
