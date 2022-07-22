@@ -48,6 +48,10 @@ let private handleTestCmd (dispatch: Msg -> unit) (cmd: Cmd) =
             |> Convert.ToHexString
 
         let pass = Environment.GetEnvironmentVariable "TEST_PWD"
+
+        if isNull pass then
+            failwith "Environment TEST_PWD not set"
+
         let data = unzip pass $"../../../common/__test_data/%s{id}.zip"
         dispatch (callback (Ok data))
     | _ -> ()

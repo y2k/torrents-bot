@@ -223,7 +223,7 @@ module Edn =
 
     let private pkey: Parser<_, unit> =
         pchar ':'
-        >>. many1Satisfy (fun c -> isLetter c || c = '_' || c = '.')
+        >>. many1Satisfy (fun c -> isLetter c || c = '_' || c = '-' || c = '.')
 
     let private pstring: Parser<_, unit> =
         pchar '"' >>. many1Satisfy (fun c -> c <> '"')
@@ -250,31 +250,79 @@ module Edn =
         >>. pvalue
         .>> pspace
 
-    let paramS name = { p = (precord_ name pstring) }
-    let paramM name = { p = (precord_ name mapString.p) }
-    let param name t = { p = (precord_ name t.p) }
+    let param name t = name, t
+    let paramS name = param name { p = pstring }
+    let paramM name = param name { p = mapString.p }
+
+    let valueParse =
+        let expr, exprImpl = createParserForwardedToRef ()
+
+        let dicP =
+            pchar '{'
+            >>. pspace
+            >>. (many (
+                     (choice [ pkey |>> sprintf ":%s"
+                               pstring |>> sprintf "\"%s\"" ]
+                      .>> pspace
+                      .>>. expr)
+                     .>> pspace
+                 )
+                 |>> (List.fold (fun a (k, v) -> $"{a} {k} {v}") ""))
+            .>> pchar '}'
+            |>> sprintf "{%s}"
+
+        exprImpl.Value <-
+            choice [ pstring |>> sprintf "\"%s\""
+                     dicP ]
+
+        expr
 
     let parseMap p1 parse : _ t =
         { p = (pchar '{' >>. p1.p .>> pchar '}') |>> parse }
 
-    let map2 p1 p2 parse : _ t =
-        { p =
-            pchar '{' >>. (pipe2 (p1.p .>> pspace) p2.p parse)
-            .>> pchar '}' }
+    let private getParseValue =
+        function
+        | Success (x, _, _) -> x
+        | Failure (e, _, _) -> failwith e
 
-    let map3 p1 p2 p3 parse : _ t =
-        { p =
-            pchar '{' >>. (pipe3 p1.p p2.p p3.p parse)
-            .>> pchar '}' }
+    let string = { p = pstring }
 
-    let map4 p1 p2 p3 p4 parse : _ t =
+    let private getValue dic n1 p1 =
+        Map.find n1 dic |> run p1.p |> getParseValue
+
+    let map2 (n1, p1) (n2, p2) convert : _ t =
         { p =
-            pchar '{' >>. (pipe4 p1.p p2.p p3.p p4.p parse)
-            .>> pchar '}' }
+            pchar '{'
+            >>. pspace
+            >>. many (pkey .>> pspace .>>. valueParse .>> pspace)
+            .>> pchar '}'
+            |>> (fun xs ->
+                let dic = Map.ofSeq xs
+                convert (getValue dic n1 p1) (getValue dic n2 p2)) }
+
+    let map3 (n1, p1) (n2, p2) (n3, p3) convert : _ t =
+        { p =
+            pchar '{'
+            >>. pspace
+            >>. many (pkey .>> pspace .>>. valueParse .>> pspace)
+            .>> pchar '}'
+            |>> (fun xs ->
+                let dic = Map.ofSeq xs
+                convert (getValue dic n1 p1) (getValue dic n2 p2) (getValue dic n3 p3)) }
+
+    let map4 (n1, p1) (n2, p2) (n3, p3) (n4, p4) convert : _ t =
+        { p =
+            pchar '{'
+            >>. many (pkey .>> pspace .>>. valueParse .>> pspace)
+            .>> pchar '}'
+            |>> (fun xs ->
+                let dic = Map.ofSeq xs
+                convert (getValue dic n1 p1) (getValue dic n2 p2) (getValue dic n3 p3) (getValue dic n4 p4)) }
 
     let parseStringMap itemParser : _ t =
         { p =
             pchar '{'
+            >>. pspace
             >>. (many1 (
                      tuple2 (pstring .>> pspace) itemParser.p
                      .>> pspace
