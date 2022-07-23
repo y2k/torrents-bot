@@ -32,7 +32,7 @@ module Parser =
                 |> Option.ofObj
                 |> Option.map (fun link ->
                     { title =
-                        node.SelectSingleNode(config.title).InnerHtml
+                        node.SelectSingleNode(config.title).InnerText
                         |> Web.HttpUtility.HtmlDecode
                       link = Uri(baseUrl, link.GetAttributeValue("href", "")) }))
             |> Array.ofSeq
@@ -61,7 +61,7 @@ module App =
         |> Seq.truncate 10
         |> Seq.map (fun x ->
             let cmd = String.toBase64Url $"%s{domain}%s{x.link.PathAndQuery}"
-            sprintf """%s <a href="https://t.me/$ME$?start=%s">[DOWNLOAD]</a>""" (String.elipsize 50 x.title) cmd)
+            sprintf """- %s <a href="https://t.me/$ME$?start=%s">[ADD]</a>""" (String.elipsize 50 x.title) cmd)
         |> String.concat "\n"
         |> sprintf "Search result:\n%s"
 

@@ -107,28 +107,32 @@ module Bot =
     let onCommand { client = client } (cmd: Cmd) =
         match cmd with
         | :? SendBotResponse as SendBotResponse (user, text, isHtml) ->
-            task {
+            async {
                 let! text =
                     if text.Contains "$ME$" then
-                        task {
-                            let! me = client.GetMeAsync()
+                        async {
+                            let! (me: User) = client.GetMeAsync()
                             return text.Replace("$ME$", me.Username)
                         }
                     else
-                        Threading.Tasks.Task.FromResult text
+                        async.Return text
 
-                let! _ =
-                    client.SendTextMessageAsync(
-                        ChatId.op_Implicit user,
-                        text,
-                        if isHtml then
-                            Nullable ParseMode.Html
-                        else
-                            Nullable()
-                    )
+                try
+                    let! _ =
+                        client.SendTextMessageAsync(
+                            ChatId.op_Implicit user,
+                            text,
+                            if isHtml then
+                                Nullable ParseMode.Html
+                            else
+                                Nullable()
+                        )
 
-                ()
+                    ()
+                with
+                | e -> printfn "ERROR: %A" e
             }
+            |> Async.Start
             |> ignore
         | _ -> ()
 
